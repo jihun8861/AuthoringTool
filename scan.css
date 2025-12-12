@@ -1,0 +1,1578 @@
+/* =========================================
+   1. 초기화 및 기본 레이아웃
+   ========================================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #f5f5f5;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+  overflow: hidden;
+}
+
+/* =========================================
+   2. 헤더 영역
+   ========================================= */
+.header-bar {
+  background: #212529;
+  color: white;
+  padding: 0 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 80px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.header-left h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #f8f9fa;
+  white-space: nowrap;
+}
+
+.data-box-group {
+  display: flex;
+  gap: 8px;
+}
+
+.data-box {
+  width: auto;
+  min-width: 80px;
+  height: 38px;
+  padding: 0 20px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-btn {
+  background: #343a40;
+  border: 1px solid #495057;
+  color: #e9ecef;
+  padding: 0 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  width: auto;
+  min-width: fit-content;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.header-btn:hover { background: #495057; color: white; transform: translateY(-1px); }
+.header-btn.load-btn { background: #0d6efd; border-color: #0d6efd; color: white; }
+.header-btn.load-btn:hover { background: #0b5ed7; }
+.header-btn.delete:hover { background: #c92a2a; border-color: #c92a2a; }
+.header-btn.reset-btn { background: rgba(231, 76, 60, 0.8); border-color: #e74c3c; }
+.header-btn.reset-btn:hover { background: #e74c3c; }
+
+.file-input { display: none; }
+
+/* =========================================
+   3. 메인 컨텐츠 레이아웃
+   ========================================= */
+.main-content {
+  flex: 1;
+  display: flex;
+  height: calc(100vh - 80px);
+  overflow: hidden;
+}
+
+/* =========================================
+   4. 좌측 썸네일 패널 (Compact Ver.)
+   ========================================= */
+/* =========================================
+   4. 좌측 썸네일 패널 (Layout Revised)
+   ========================================= */
+.thumbnail-panel {
+  width: 230px; /* [확대] 인덱스 공간 확보 (220px -> 250px) */
+  background: #2c3e50;
+  border-right: 1px solid #34495e;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 500;
+  flex-shrink: 0;
+}
+
+.panel-controls {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.sidebar-load-btn {
+  width: 100%;
+  height: 50px;
+  padding: 8px 0;
+  background: #3498db;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.2s;
+  font-size: 17px;
+}
+.sidebar-load-btn:hover { background: #2980b9; }
+
+.thumbnail-list {
+  display: block;
+  position: relative;
+  overflow-y: auto;
+  flex: 1;
+  width: 100%;
+  
+}
+.thumbnail-list::-webkit-scrollbar { width: 6px; }
+.thumbnail-list::-webkit-scrollbar-track { background: #2c3e50; }
+.thumbnail-list::-webkit-scrollbar-thumb { background: #5a6c7d; border-radius: 3px; }
+
+/* [수정 위치: 약 140번째 줄 부근] */
+.thumbnail-wrapper {
+  position: absolute;
+  left: 0; 
+  right: 5px;
+  height: 150px;
+  box-sizing: border-box;
+  overflow: visible;
+  
+  display: flex;
+  align-items: flex-start; 
+  
+  /* [핵심] 인덱스와 이미지 사이의 고정 간격 (이 값은 항상 유지됨) */
+  gap: 8px;       
+  
+  padding: 0 5px;
+}
+
+.thumbnail-index {
+  position: static;
+  
+  /* [핵심] JS에서 계산한 너비 변수를 사용 (기본값 30px) */
+  flex: 0 0 var(--index-width, 5px);
+  width: var(--index-width, 5px);
+  min-width: var(--index-width, 5px);
+  
+  text-align: right; /* 우측 정렬 유지 */
+  font-variant-numeric: tabular-nums;
+  
+  font-size: 12px;
+  font-weight: bold;
+  color: #bdc3c7;
+  
+  margin-top: 4px;
+  margin-right: 0;
+  padding-right: 0;
+  z-index: 5;
+  
+  transition: width 0.2s ease, flex-basis 0.2s ease; /* 너비 변경 시 부드럽게 */
+}
+
+/* 썸네일 아이템 (이미지 박스) */
+.thumbnail-item {
+  flex: 1; /* 남은 공간 모두 차지 */
+  width: auto; /* width 100% 제거 */
+  height: 90%;
+  cursor: pointer;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #4a5f7a;
+  background: #34495e;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.thumbnail-item:hover { 
+  border-color: #3498db; 
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  z-index: 10; 
+}
+
+.thumbnail-item.active {
+  /* [핵심] 저장(초록), 삭제(빨강) 상태여도 무조건 이 주황색 테두리가 덮어씁니다. */
+  border: 4px solid #3498db !important; /* 두께 4px, 밝은 주황색 */
+  
+  /* 선택되었을 때 약간의 그림자 효과로 강조 */
+  
+  
+  /* 선택된 아이템이 살짝 튀어나와 보이게 */
+  z-index: 100 !important;
+  transform: scale(1.02); 
+  transition: all 0.1s ease-in-out;
+}
+
+/* 이미지 (가로세로 꽉 채움) */
+.thumbnail-image {
+  width: 100%;
+  height: 82%; 
+  object-fit: cover; 
+  object-position: bottom center;
+  background: rgba(0, 0, 0, 0.2);
+  display: block;
+}
+
+.thumbnail-info {
+  height: 18%;
+  padding: 0 5px;
+  background: rgba(44, 62, 80, 0.98);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.thumbnail-name {
+  font-size: 10px;
+  font-weight: 400;
+  color: #bdc3c7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+}
+
+.no-images {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 12px;
+  padding-top: 40px;
+}
+
+/* 상태 배지 공통 스타일 (우측 상단 동그라미) */
+.status-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  
+  /* 기본적으로 숨김 (JS에서 클래스 추가 시 보임) */
+  display: none; 
+  align-items: center;
+  justify-content: center;
+  
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 20; /* 이미지보다 위에 */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
+}
+
+/* --- 상태 1: 저장 완료 (Saved) - 초록색 --- */
+/* 테두리를 초록색으로 변경 */
+.thumbnail-item.status-saved {
+  border: 3px solid #2ecc71 !important; /* 잘 보이게 3px로 조정 */
+}
+
+.thumbnail-item.active.status-saved {
+  border: 3px solid #3498db !important;
+}
+
+/* 초록색 배지 보이기 */
+.thumbnail-item.status-saved .status-badge.saved {
+  display: flex;
+  background-color: #2ecc71;
+}
+
+/* --- 상태 2: 삭제됨 (Deleted) - 빨간색 + 흐림 --- */
+/* [수정] 테두리는 선명하게 빨간색 유지 (opacity 제거) */
+.thumbnail-item.status-deleted {
+  border: 3px dashed #e74c3c !important; /* 빨간 점선 강제 */
+}
+
+/* [수정] 내부 이미지만 흐리고 흑백으로 처리 */
+.thumbnail-item.status-deleted .thumbnail-image {
+  filter: grayscale(100%);
+  opacity: 0.6; 
+}
+
+/* 빨간색 배지 보이기 */
+.thumbnail-item.status-deleted .status-badge.deleted {
+  display: flex;
+  background-color: #e74c3c;
+}
+
+/* [추가] 삭제된 항목을 클릭(Active)하고 있을 때도 빨간 점선 유지 */
+.thumbnail-item.active.status-deleted {
+  border: 4px solid #3498db !important; /* 빨간 점선 무시하고 주황 실선 적용 */
+  background-color: rgba(255, 159, 67, 0.15) !important; /* 배경만 은은한 주황색 */
+}
+
+/* =========================================
+   [수정] 확인(Visited) 상태 스타일 개선
+   ========================================= */
+
+/* 3. 확인했음 (Visited) - 책갈피 스타일 */
+.thumbnail-item.status-visited {
+  /* 1. 전체 테두리는 얇고 차분한 회색 */
+  border: 1px solid #7f8c8d !important; 
+  
+  /* 2. [핵심] 왼쪽에만 두꺼운 포인트를 줘서 '읽음/확인' 느낌 강조 */
+  border-left: 5px solid #95a5a6 !important; 
+  
+  /* 3. 배경을 아주 살짝 밝게 해서 읽지 않은 것과 대비 (선택 사항) */
+  background-color: #3b5066; 
+}
+
+/* 배지(눈 아이콘)도 테두리 색과 깔맞춤 */
+.thumbnail-item.status-visited .status-badge.visited {
+  display: flex;
+  background-color: #95a5a6; /* 좌측 테두리와 같은 색 */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* 입체감 살짝 추가 */
+}
+
+/* [참고] 활성화(클릭) 되었을 때는 기존 주황색이 이겨야 하므로 active 우선순위 유지 */
+.thumbnail-item.active.status-visited {
+  border: 4px solid #3498db !important; /* 클릭 시엔 다시 주황색으로 덮어씀 */
+  border-left: 4px solid #3498db !important;
+}
+
+/* [추가] 썸네일 검색창 스타일 */
+.search-wrapper {
+  position: relative;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 10px 8px 32px; /* 아이콘 공간 확보 */
+  background-color: #34495e;
+  border: 1px solid #4a5f7a;
+  border-radius: 4px;
+  color: #ecf0f1;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #3498db;
+}
+
+.search-input::placeholder {
+  color: #7f8c8d;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #95a5a6;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* =========================================
+   5. 중앙 이미지 뷰어
+   ========================================= */
+.image-viewer {
+  flex: 1;
+  background: #e0e0e0;
+  border-right: 1px solid #ccc;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.image-scroll-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  position: relative;
+  background: #555;
+  display: block;
+  padding: 0;
+}
+
+.document-image {
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  display: block;
+  margin: 0;
+}
+
+.zoom-controls {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  display: flex;
+  gap: 10px;
+  z-index: 100;
+}
+
+.zoom-btn {
+  background: rgba(33, 37, 41, 0.85);
+  color: white;
+  border: none;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+.zoom-btn:hover { background: #212529; transform: scale(1.1); }
+
+/* =========================================
+   6. 우측 패널 (신규 디자인)
+   ========================================= */
+
+/* [추가] 패널 리사이저 스타일 */
+.resizer {
+  width: 5px;              /* 클릭하기 편한 너비 */
+  cursor: col-resize;      /* 좌우 화살표 커서 */
+  background-color: #ddd;  /* 기본 색상 */
+  z-index: 502;
+  transition: background-color 0.2s;
+  flex-shrink: 0;          /* 찌그러짐 방지 */
+}
+
+.resizer:hover,
+.resizer.resizing {        /* 드래그 중일 때 색상 변경 */
+  background-color: #3498db; 
+}
+
+/* 우측 패널 본문 (수정) */
+.right-panel {
+  width: 430px; /* 초기 너비 */
+  min-width: 430px; /* 최소 너비 제한 */
+  max-width: 600px; /* 최대 너비 제한 */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* 우측 패널 래퍼 (수정) */
+.right-panel-wrapper {
+  position: relative;
+  display: flex;
+  height: 100%;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 500;
+  background: #fff;
+  overflow: visible;
+  
+  /* [수정] 초기 너비는 JS 또는 내부 .right-panel에 의해 결정되므로 auto로 둠 */
+  /* 단, flex 아이템으로서 크기가 줄어들지 않도록 설정 */
+  flex-shrink: 0; 
+}
+
+/* =========================================
+   [최종 수정] 좌측 사이드 탭 (컴팩트 스타일)
+   ========================================= */
+.panel-side-tabs {
+  position: absolute;
+  left: -55px;
+  transform: translateY(-50%); /* 정확한 중앙 정렬 */
+  height: auto;             /* 내용물만큼만 높이 차지 */
+  bottom: -150px;             /* 하단 고정 해제 */
+  width: 50px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px 0;          /* 내부 여백 */
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  align-items: center;
+  justify-content: center;
+  z-index: 501;
+}
+
+/* 탭 버튼 공통 스타일 */
+.side-tab-btn {
+  width: 36px;
+  height: 80px; /* 불티, 용접부 버튼은 긴 형태 유지 */
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 2px;
+  transition: transform 0.2s;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.side-tab-btn:hover {
+  transform: scale(1.05);
+}
+
+.side-tab-btn.spatter { background-color: #ee4647; }
+.side-tab-btn.weld { background-color: #3e9c65; }
+
+/* 홈 버튼: 정사각형 */
+.side-tab-btn.home { 
+  background-color: #007bff; 
+  height: 40px; 
+  writing-mode: horizontal-tb; 
+}
+
+/* [수정] 도움말 버튼: 정사각형, 위쪽 여백 추가 */
+.side-tab-btn.guide-btn {
+  background-color: #34495e;
+  
+  height: 40px;
+  writing-mode: horizontal-tb;
+  font-size: 18px;
+  margin-bottom: 0;
+  
+  /* 구분선 효과 (선택 사항) */
+  position: relative;
+}
+
+.side-tab-btn.guide-btn:hover {
+  background-color: #2c3e50;
+  color: #fff;
+}
+
+/* 애니메이션 정의: 노란색 빛이 뿜어져 나오는 효과 */
+@keyframes activePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 235, 59, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 235, 59, 0); /* 10px까지 빛이 퍼짐 */
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 235, 59, 0);
+  }
+}
+
+/* 불티 버튼이 활성화(.active-mode) 되었을 때 스타일 */
+.side-tab-btn.spatter.active-mode {
+  /* 1. 배경색: 조금 더 어두운 빨강 (눌린 느낌) */
+  background-color: #d32f2f !important;
+
+  /* 2. 테두리: 눈에 확 띄는 형광 노랑 */
+  border: 3px solid #ffff00 !important;
+
+  /* 4. 크기: 살짝 키워서 강조 */
+  transform: scale(1.1) !important;
+  z-index: 600 !important; /* 다른 요소보다 위에 오도록 */
+
+  /* 5. 애니메이션 적용 (위에서 정의한 activePulse) */
+  animation: activePulse 1.5s infinite !important;
+}
+
+/* 용접부 전용 활성 스타일 (추천) */
+.side-tab-btn.weld.active-mode {
+  background-color: #1b5e20; /* 진한 초록 */
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+  transform: scale(0.95);
+  border: 2px solid #fff;
+}
+
+/* [추가] 생성 중인 임시 포인트 스타일 */
+.spatter-point.temp {
+  background: #fff;
+  border: 2px solid #ffaa00; /* 주황색 테두리 */
+  width: 8px;
+  height: 8px;
+  z-index: 200;
+}
+
+.panel-section { padding: 15px; }
+
+.caption-box {
+  border: 2px solid #5faee3;
+  background-color: #eaf6ff;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+.caption-box::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background-color: #2980b9;
+}
+
+.caption-header {
+  font-size: 14px;
+  font-weight: bold;
+  color: #2c3e50;
+  padding: 12px 15px 5px 20px;
+}
+
+.caption-content {
+  font-size: 13px;
+  color: #444;
+  padding: 5px 15px 15px 20px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* [추가] 캡션 클릭 가능한 줄 스타일 */
+.clickable-line {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.clickable-line:hover {
+  background-color: #d0e7ff; /* 연한 파란색 호버 */
+  color: #0056b3;
+}
+
+/* [추가] 환경 정보 섹션 헤더 */
+.env-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 15px 5px 15px; /* 하단 패딩 줄임 */
+  cursor: pointer;
+  user-select: none;
+  background: #fff;
+  transition: transform 0.3s ease;
+}
+
+.env-section-header:hover {
+  background-color: #f8f9fa;
+}
+
+.env-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+#envToggleIcon {
+  font-size: 12px;
+  color: #7f8c8d;
+  transition: transform 0.3s ease; /* 회전 애니메이션 */
+}
+
+/* 아이콘 회전 클래스 */
+.env-section-header.active #envToggleIcon {
+  transform: rotate(180deg);
+}
+
+.env-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  max-height: 0;
+  padding: 0 10px; 
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+/* [수정됨] 확장 상태 (열림): 전체 내용 표시 */
+.env-info-grid.expanded {
+  max-height: 600px; 
+  padding: 5px 10px 10px 10px; 
+  opacity: 1;
+  overflow: visible;
+}
+
+/* (B) 환경 정보 그리드 스크롤바 수정 */
+.env-info-grid::-webkit-scrollbar {
+  width: 10px; /* 실제 클릭 영역은 10px로 늘림 (6px + 여백 4px) */
+}
+
+.env-info-grid::-webkit-scrollbar-thumb {
+  background-color: #7f7f7f; /* 기존 색상 유지 */
+  border-radius: 10px;       /* 둥글게 처리 */
+  
+  /* [핵심] 투명 테두리를 2px씩 주어 시각적으로 6px만 보이게 만듦 */
+  border: 2px solid transparent; 
+  background-clip: content-box;  /* 배경색이 테두리 안쪽(6px)에만 칠해지도록 설정 */
+}
+
+.env-info-grid::-webkit-scrollbar-track {
+  background-color: #d9d9d9; /* 기존 색상 유지 */
+  border-radius: 10px;
+  
+  /* 트랙에도 똑같이 여백 적용 */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* 박스 스타일 (기존 유지) */
+.env-box {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 5px 2px;
+  text-align: center;
+  background: white;
+  height: 55px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.env-label { font-size: 11px; color: #888; margin-bottom: 2px; }
+.env-value { font-size: 11px; font-weight: bold; color: #333; line-height: 1.2; }
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-top: 1px solid #eee;
+}
+.section-header-row h3 {  font-weight: bold; color: #333; }
+.btn-delete-all { background-color: #ff4444; color: white; border: none; border-radius: 4px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+
+.weld-header {
+  background-color: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  color: #2e7d32;
+  font-weight: bold;
+  padding: 8px 15px;
+  margin: 0 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 양 끝 배치 */
+  height: 45px;
+}
+
+/* 헤더 좌측 그룹 (제목 + 정보) */
+.weld-header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* 제목과 정보 사이 간격 */
+}
+
+/* 제목 (좌측 고정) */
+.weld-title {
+  flex-shrink: 0; /* 줄어들지 않음 */
+}
+
+/* 정보 컨테이너 (중앙 배치) */
+.weld-inline-info {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 내부 텍스트 중앙 정렬 */
+  
+  gap: 40px; /* 크기와 온도 사이 간격 */
+  font-size: 11px;
+  font-weight: bold;
+  
+  /* [핵심] 남은 공간을 모두 차지하여 스스로를 중앙에 위치시킴 */
+  flex: 1; 
+  margin: 0 10px; /* 제목/버튼과 최소 간격 확보 */
+}
+
+/* 삭제 버튼 (우측 고정) */
+.btn-delete-weld {
+  background: transparent;
+  border: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  flex-shrink: 0; /* 줄어들지 않음 */
+}
+
+.btn-delete-weld:hover {
+  background-color: rgba(198, 40, 40, 0.1);
+  transform: scale(1.1);
+}
+
+/* 용접부 섹션 래퍼 */
+.weld-section-wrapper {
+  margin-bottom: 5px;
+}
+
+/* 용접부 상세 정보 (IR용) */
+.weld-info-row {
+  background: #f1f8e9; /* 용접부 헤더와 어울리는 연한 초록 배경 */
+  border: 1px solid #c8e6c9;
+  border-top: none;    /* 헤더와 연결된 느낌 */
+  margin: 0 10px 5px 10px;
+  padding: 8px 15px;
+  border-radius: 0 0 6px 6px;
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+}
+
+/* 필터 헤더 커서 추가 */
+.filter-col {
+  flex: 1;
+  padding: 6px 0; /* 터치 영역 확보 */
+  border-right: 1px solid #ccc;
+  cursor: pointer; /* 손가락 모양 */
+  user-select: none; /* 텍스트 선택 방지 */
+  transition: background 0.2s;
+}
+
+.filter-col:hover {
+  background-color: #e9ecef;
+}
+
+/* 정렬 가능한 헤더 컬럼 스타일 */
+.sortable {
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;       /* 아이콘과 텍스트 정렬 */
+  justify-content: center;
+  align-items: center;
+}
+
+.sortable:hover {
+  color: #000;
+  background-color: rgba(0,0,0,0.05); /* 살짝 어둡게 */
+  border-radius: 4px;
+}
+
+/* 정렬 아이콘 */
+.sort-icon {
+  font-size: 10px;
+  margin-left: 2px;
+  opacity: 0.3;
+}
+
+/* 정보 태그 공통 수정 */
+.info-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.info-tag.red { color: #d32f2f; } /* 빨강 (온도, 이상유형) */
+
+.filter-header {
+  display: grid; /* Flex 대신 Grid 사용 */
+  /* 기본(RGB) 모드: 6개 컬럼 비율 설정 */
+  /* No(0.6) 크기(1) 거리(1) 좌표(1.4) 유형(0.8) 삭제(0.5) */
+  grid-template-columns: 0.6fr 1fr 1fr 1.4fr 0.8fr 0.5fr; 
+  gap: 5px; /* 컬럼 사이 간격 */
+  
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px 4px 0 0;
+  padding: 8px 10px; /* 좌우 패딩 */
+  margin-right: 1px;
+  font-size: 11px;
+  text-align: center;
+  color: #555;
+  align-items: center;
+}
+
+/* 헤더 텍스트 스타일 */
+.filter-header .col-id, 
+.filter-header .col-size, 
+.filter-header .col-dist {
+  font-weight: bold;
+  color: #555;
+}
+.filter-header .col-coord {
+  font-weight: bold;
+  color: #555;
+  padding-right: 10px;
+}
+.filter-header .col-type { font-weight: bold; color: #555; padding-right: 10px; }
+.filter-header .col-del { font-weight: bold; color: #555; padding-right: 25px; }
+
+.filter-col { flex: 1; padding: 4px 0; border-right: 1px solid #ccc; cursor: pointer; }
+.filter-col:last-child { border-right: none; }
+
+/* [수정됨] 불티 개수 요약 영역 */
+.spatter-summary {
+  display: flex;
+  justify-content: space-around; /* 중앙 정렬 */
+  align-items: center;
+  gap: 20px; /* 각 항목(전체/정상/이상) 사이 간격 */
+  padding: 12px 10px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  margin: 0 10px 5px 10px;
+  border-radius: 6px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: row; /* 라벨과 값을 가로로 배치 */
+  align-items: center;
+  gap: 5px; /* '전체:' 와 '0' 사이 간격 */
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #555;
+  font-weight: 600;
+  margin: 0;
+}
+
+.summary-value {
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+}
+
+.summary-value.orange { color: #ffaa00; }
+.summary-value.red { color: #d32f2f; }
+
+/* 세로 구분선(.summary-line) 스타일은 삭제하거나 무시됩니다 */
+
+/* (F) 불티 리스트 스타일 수정 (Compact 버전) */
+.spatter-list {
+  flex: 1;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  padding: 0; /* 패딩 제거 */
+  background: #f9f9f9;
+  border-top: 1px solid #ddd;
+}
+
+.spatter-item {
+  background: white;
+  border-bottom: 1px solid #eee; /* 테두리를 하단 선으로 변경 */
+  padding: 0 10px;
+  height: 40px; /* 높이 고정 (컴팩트하게) */
+  display: flex;
+  align-items: center; /* 세로 중앙 정렬 */
+  justify-content: space-between;
+  transition: background 0.1s;
+  cursor: pointer;
+}
+
+.spatter-item:hover {
+  background-color: #f1f8ff; /* 호버 효과 */
+}
+
+/* 내부 텍스트 스타일 */
+.spatter-item .col-id    { font-weight: bold; font-size: 12px; color: #333; }
+.spatter-item .col-size  { font-size: 12px; color: #555; }
+.spatter-item .col-dist  { font-size: 12px; color: #555; }
+.spatter-item .col-coord { font-size: 11px; color: #555; letter-spacing: -0.5px; }
+.spatter-item .col-type  { font-size: 12px; font-weight: 600; }
+
+/* =========================================
+   8. 인터랙션 & 하이라이트 (UX 개선)
+   ========================================= */
+
+/* [리스트] 선택된 아이템 스타일 (공통) */
+.spatter-item.selected {
+  background-color: #fff9c4; /* 기본: 노란 배경 */
+  border-left: 4px solid #ffeb3b;
+}
+
+/* [리스트] IR 모드일 때 선택 아이템 (파란색) */
+body.ir-mode-active .spatter-item.selected {
+  background-color: #e3f2fd;
+  border-left-color: #2962ff;
+}
+
+/* =========================================
+   [RGB 모드 (기본)] 하이라이트 -> 노란색 (#ffff00)
+   ========================================= */
+.spatter-polygon.active {
+  stroke: #ffff00 !important;
+  stroke-width: 3px !important;
+  fill: rgba(255, 255, 0, 0.3) !important;
+  z-index: 200;
+  animation: pulse 1s infinite alternate;
+}
+
+.spatter-point.active {
+  background-color: #ffff00 !important;
+  border-color: white !important;
+  transform: translate(-50%, -50%) scale(calc(var(--ui-scale) * 2)) !important;
+  z-index: 201 !important;
+}
+
+.spatter-label.active {
+  color: #ffff00 !important;
+  font-size: 14px !important;
+  z-index: 202 !important;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000 !important;
+}
+
+/* =========================================
+   [IR 모드 (흰 배경)] 하이라이트 -> 파란색 (#2962ff)
+   ========================================= */
+body.ir-mode-active .spatter-polygon.active {
+  stroke: #2962ff !important;
+  fill: rgba(41, 98, 255, 0.4) !important;
+}
+
+body.ir-mode-active .spatter-point.active {
+  background-color: #2962ff !important;
+}
+
+body.ir-mode-active .spatter-label.active {
+  color: #2962ff !important;
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff !important; /* 가독성 위해 흰색 테두리 */
+}
+
+/* 드래그 중인 포인트 색상 분기 */
+/* 기본 (RGB) */
+body.dragging-spatter-point .spatter-point.point-dragging {
+  background: #ffff00 !important;
+  transform: translate(-50%, -50%) scale(calc(var(--ui-scale) * 3)) !important;
+  z-index: 999 !important;
+}
+
+/* IR 모드 */
+body.ir-mode-active.dragging-spatter-point .spatter-point.point-dragging {
+  background: #2962ff !important;
+}
+
+/* 깜빡임 효과 키프레임 (공통) */
+@keyframes pulse {
+  from { stroke-opacity: 1; fill-opacity: 0.3; }
+  to { stroke-opacity: 0.5; fill-opacity: 0.1; }
+}
+
+/* 내부 레이아웃: 그리드처럼 배치 */
+.spatter-row-content {
+  display: grid;
+  grid-template-columns: 0.6fr 1fr 1fr 1.4fr 0.8fr 0.5fr; 
+  gap: 5px;
+  width: 100%;
+  align-items: center;
+  text-align: center;
+}
+
+.filter-header.ir-mode,
+.spatter-list.ir-mode .spatter-row-content {
+  grid-template-columns: 0.6fr 1fr 1fr 0.8fr 0.5fr; 
+}
+
+/* 4. 개별 컬럼 스타일 (공통) */
+/* Flex 관련 설정(flex-basis 등)은 모두 제거하고 텍스트 정렬만 남깁니다 */
+.filter-header > div,
+.spatter-row-content > div {
+  white-space: nowrap;
+  text-overflow: ellipsis; /* 내용 넘치면 ... 처리 */
+  display: flex;
+  justify-content: center; /* 가운데 정렬 */
+  align-items: center;
+}
+
+.col-id { 
+  flex: 0 0 10%; /* flex-basis 고정 */
+  display: flex; 
+  align-items: center; 
+  justify-content: flex-start;
+  padding-left: 5px;
+  min-width: 0; /* overflow 방지 */
+}
+
+.col-size { 
+  flex: 0 0 15%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  min-width: 0;
+}
+
+.col-dist { 
+  flex: 0 0 15%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  min-width: 0;
+}
+
+.col-coord { 
+  flex: 0 0 25%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  min-width: 0;
+}
+
+.col-type { 
+  flex: 0 0 20%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  min-width: 0;
+}
+
+.col-del { 
+  flex: 0 0 15%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  min-width: 0;
+}
+
+/* 유형별 색상 */
+.type-normal { color: #ffaa00; }
+.type-abnormal { color: #d32f2f; }
+.type-none { color: #999; }
+
+/* [추가] 불티(Spatter) 다각형 스타일 */
+.spatter-polygon {
+  fill: rgba(255, 170, 0, 0.3); /* 주황색 반투명 */
+  stroke: #ffaa00;               /* 주황색 테두리 */
+  stroke-width: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spatter-polygon:hover {
+  fill: rgba(255, 170, 0, 0.6);
+  stroke-width: 3px;
+}
+
+/* =========================================
+   [최종 수정] 불티 라벨: 높이 비례 위치 조정 (% 사용)
+   ========================================= */
+.spatter-label {
+  transform: translate(-50%, -120%) scale(var(--ui-scale)) !important;
+  transform-origin: bottom center !important;
+
+  /* 배경 투명 및 그림자 제거 */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  
+  /* 텍스트 스타일 */
+  color: #ff4444 !important; 
+  font-size: 11px !important; /* 글자 크기 살짝 키움 */
+  font-weight: 800 !important;
+  
+  text-shadow:
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+
+  display: none !important;
+  /* 필수 설정 */
+  position: absolute;
+  padding: 0 !important;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 102;
+}
+
+.spatter-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.spatter-name { font-weight: bold; font-size: 14px; color: #333; }
+
+/* 삭제 버튼 스타일 수정 */
+.btn-delete-item {
+  background: transparent;
+  color: #999;
+  border: none;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: color 0.2s;
+  margin: 0;
+}
+
+.btn-delete-item:hover {
+  color: #c0392b;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+
+.spatter-info-row { display: flex; gap: 10px; font-size: 12px; }
+.info-tag { display: flex; align-items: center; gap: 3px; }
+.info-tag.blue { color: #007bff; }
+.info-tag.gray { color: #666; }
+.info-tag.orange { color: #ff6600; }
+
+/* =========================================
+   7. 라벨링 오버레이 (디자인 수정: Slim 버전)
+   ========================================= */
+
+/* =========================================
+   7. 라벨링 오버레이 (색상 변경: 용접부=초록, 불티=빨강)
+   ========================================= */
+
+#labelOverlay {
+  --ui-scale: 1; /* JS에서 이 값을 실시간으로 변경함 */
+}
+
+/* --- [1] 용접부(Weld Zone) 포인트 -> 초록색 --- */
+.label-point {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2ecc71; /* 초록색 */
+  border: 1px solid white;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  transition: transform 0.1s;
+}
+
+.label-point:hover {
+  transform: translate(-50%, -50%) scale(1.5);
+  background: #27ae60;
+  border-width: 2px;
+  z-index: 110;
+}
+
+/* --- [2] 용접부 텍스트 (#1, #2...) --- */
+.label-point-number {
+  position: absolute;
+  top: -15px; /* 위치 미세 조정 */
+  left: 50%;
+  transform: translateX(-50%);
+  
+  /* [수정] 배경 제거, 텍스트만 표시 */
+  background: none; 
+  padding: 0;
+  
+  color: white; /* 텍스트 색상 */
+  font-size: 11px; /* 크기 약간 키움 (배경이 없어서 작아 보일 수 있음) */
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  
+  /* [추가] 가독성을 위한 테두리(그림자) 효과 */
+  text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+}
+
+/* --- [추가] "용접부" 메인 라벨 (동적 스케일링 적용) --- */
+.weld-zone-label {
+  position: absolute;
+  
+  /* [수정됨] 위치 잡기 + 줌 배율에 따른 크기 조절 */
+  transform: translate(-50%, -100%) scale(var(--ui-scale));
+  transform-origin: bottom center; /* 아래쪽 중심으로 커짐 */
+  
+  /* 배경 제거 및 스타일 */
+  background: none; 
+  padding: 0;
+  
+  color: #2ecc71; /* 초록색 */
+  font-size: 12px;
+  font-weight: 800; 
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 105;
+  margin-top: -3px;
+}
+
+/* [추가됨] "용접부" 메인 라벨 */
+.weld-zone-label {
+  position: absolute;
+  transform: translate(-50%, -100%); /* 영역 위쪽 중앙 */
+  color: #2ecc71;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 105;
+  margin-top: -5px; /* 약간 더 위로 */
+   /* 테두리 효과 */
+  text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+}
+
+/* --- [3] 불티(Spatter) 포인트 (초소형 설정) --- */
+.spatter-point {
+  position: absolute;
+  width: 2px;  /* [수정] 6px -> 2px (기본 상태에서 거의 안 보임) */
+  height: 2px; /* [수정] 6px -> 2px */
+  border-radius: 50%;
+  background: #ff4444;
+  border: none; /* [수정] 테두리 제거 */
+  
+  /* 줌 레벨에 따라 크기 조절 */
+  transform: translate(-50%, -50%) scale(var(--ui-scale));
+  
+  cursor: pointer;
+  z-index: 101; 
+  box-shadow: none; /* 그림자도 제거 */
+  transition: transform 0.1s;
+}
+
+.spatter-point:hover {
+  /* [수정] 호버 시에는 식별/클릭 쉽도록 5배 확대 */
+  background: #ff0000;
+  border: 1px solid white; /* 호버 시에만 테두리 생김 */
+  z-index: 110;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.spatter-point:active {
+  cursor: grabbing; /* 잡은 모양 */
+}
+
+/* 용접부 폴리곤 (초록색) */
+.label-polygon {
+  fill: rgba(46, 204, 113, 0.1); /* 기본: 거의 보일듯 말듯 연하게 (0.1) */
+  stroke: #2ecc71;               /* 초록색 선 */
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  cursor: move;
+  
+  /* 색상 변경 시 부드럽게 전환 */
+  transition: all 0.2s ease;
+}
+
+/* [수정됨] 호버 시 배경색: 은은하게 조금만 진해짐 */
+.label-polygon:hover {
+  fill: rgba(46, 204, 113, 0.25); /* 호버: 너무 진하지 않은 자연스러운 초록 (0.25) */
+  stroke-width: 2px;              /* 선 두께 강조는 유지 */
+}
+
+.spatter-polygon {
+  fill: rgba(255, 50, 50, 0.15);
+  stroke: #ff4444;
+  /* JS에서 1px로 설정하지만 CSS에서도 non-scaling-stroke 적용 */
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spatter-polygon:hover {
+  fill: rgba(255, 50, 50, 0.4);
+  stroke-width: 2px;
+}
+
+/* 기타 유틸 */
+.image-scroll-container.labeling-mode,
+.image-scroll-container.labeling-mode .document-image {
+  cursor: crosshair !important;
+}
+
+/* =========================================
+   [UX 개선] 패닝(이동) 중 커서 강제 적용
+   ========================================= */
+/* 라벨링 모드(crosshair)보다 우선순위를 높이기 위해 !important 사용 */
+.image-scroll-container.is-panning,
+.image-scroll-container.is-panning .document-image {
+  cursor: grabbing !important;
+}
+
+.label-overlay svg { pointer-events: none; }
+.label-overlay svg polygon, .label-overlay svg polyline { pointer-events: auto; }
+/* [추가] 리사이징 중 텍스트/이미지 선택 방지 & 커서 고정 */
+body.resizing-active {
+  user-select: none;          /* 텍스트 선택 막기 (표준) */
+  -webkit-user-select: none;  /* 크롬/사파리 호환 */
+  -moz-user-select: none;     /* 파이어폭스 호환 */
+  -ms-user-select: none;      /* IE/엣지 호환 */
+  cursor: col-resize !important; /* 드래그 중 커서가 튀는 것 방지 */
+}
+
+/* 드래그 중에는 iframe이나 이미지의 포인터 이벤트를 꺼서 버벅임 방지 */
+body.resizing-active iframe,
+body.resizing-active img {
+  pointer-events: none;
+}
+
+/* 1. 드래그 중일 때는 마우스가 어디에 있든 무조건 'grabbing' 커서 유지 (깜빡임 해결 핵심) */
+body.dragging-spatter-point,
+body.dragging-spatter-point * {
+  cursor: grabbing !important;
+}
+
+/* 2. 드래그 중인 '특정 포인트'만 노란색으로 강조 및 확대 (이전 답변의 수정 사항 유지) */
+body.dragging-spatter-point .spatter-point.point-dragging {
+  background: #ffff00 !important;
+  transform: translate(-50%, -50%) scale(calc(var(--ui-scale) * 3)) !important;
+  z-index: 999 !important;
+}
+
+/* 설명: .labeling-mode가 cursor: crosshair !important를 가지고 있어서
+   드래그 중에도 십자선이 나타나려는 성질을 강제로 억제합니다.
+*/
+body.dragging-spatter-point .image-scroll-container.labeling-mode,
+body.dragging-spatter-point .image-scroll-container.labeling-mode * {
+  cursor: grabbing !important;
+}
+
+/* [추가] 용접부 드래그 중 호버 스타일 유지 */
+body.dragging-weld .label-polygon {
+  fill: rgba(46, 204, 113, 0.25) !important; /* 호버 색상 강제 적용 */
+  stroke-width: 2px !important;               /* 선 두께 강제 적용 */
+  cursor: move;
+}
+
+/* 도움말 모달 스타일 */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(3px);
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    color: #eee;
+    width: 500px;
+    max-width: 90%;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid #444;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    background-color: #2d2d2d;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+}
+
+.modal-header h3 { margin: 0; font-size: 18px; color: #fff; }
+
+.btn-close-modal {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 24px;
+    cursor: pointer;
+}
+.btn-close-modal:hover { color: #fff; }
+
+.modal-body {
+    padding: 20px;
+    max-height: 70vh;    
+    text-align: left; /* 텍스트 좌측 정렬 */
+}
+
+.guide-section { margin-bottom: 25px; }
+.guide-section h4 {
+    margin-top: 0; margin-bottom: 10px;
+    color: #4fc3f7;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+    font-size: 15px;
+}
+
+.guide-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.guide-table th { text-align: left; width: 140px; padding: 6px 0; color: #ccc; font-weight: normal; }
+.guide-table td { padding: 6px 0; color: #fff; }
+
+.key-badge {
+    display: inline-block; padding: 2px 6px;
+    border: 1px solid #666; border-radius: 4px;
+    background-color: #333; font-family: monospace; font-size: 12px;
+    box-shadow: 0 2px 0 #000; margin-right: 4px;
+}
+
+.guide-list { padding-left: 20px; margin: 0; font-size: 14px; line-height: 1.6; }
+.guide-list li { margin-bottom: 5px; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* [추가] 기록 방지 버튼 - 비활성화 상태 (빨간색 강조) */
+.header-btn.history-off {
+  background-color: #e74c3c !important; /* 빨간색 */
+  border-color: #c0392b !important;
+  color: white !important;
+  font-weight: bold;
+  animation: pulse-red 2s infinite; /* 깜빡임 효과 (선택사항) */
+}
+
+.header-btn.history-off:hover {
+  background-color: #c0392b !important;
+}
+
+/* (선택사항) 기록 방지 중일 때 깜빡임 효과 */
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}

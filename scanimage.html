@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>용접 데이터 시각화</title>
+    <link rel="stylesheet" href="scan.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <div class="header-bar">
+      <div class="header-left">
+        <h1>용접 데이터 시각화</h1>
+        <div class="data-box-group">
+          <div class="data-box" id="dataBox1"></div>
+          <div class="data-box" id="dataBox2"></div>
+          <div class="data-box" id="dataBox3"></div>
+          <div class="data-box" id="dataBox4"></div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button
+          class="header-btn action-btn"
+          onclick="runBatchCorrection()"
+          style="background-color: #6f42c1; border-color: #6f42c1"
+        >
+          <i class="fa-solid fa-robot"></i> 일괄 보정
+        </button>
+
+        <button
+          class="header-btn"
+          id="btnToggleHistory"
+          onclick="toggleHistoryRecording()"
+          title="클릭 시 작업 이력이 로컬 스토리지에 저장되지 않습니다."
+        >
+          <i class="fa-solid fa-toggle-on"></i> 기록 켜짐
+        </button>
+        <button
+          class="header-btn reset-storage-btn"
+          onclick="clearLocalStorageHistory()"
+          title="저장/삭제/확인 표시를 모두 지웁니다"
+        >
+          <i class="fa-solid fa-eraser"></i> 기록 초기화
+        </button>
+        <button
+          class="header-btn action-btn"
+          id="btnSave"
+          title="현재 수정된 데이터를 저장합니다."
+          onclick="handleSaveClick()"
+        >
+          <i class="fa-solid fa-floppy-disk"></i> 저장
+        </button>
+        <button
+          class="header-btn action-btn delete"
+          id="btnDelete"
+          title="불량 데이터를 논리적으로 삭제합니다."
+          onclick="handleDeleteCurrentPair()"
+        >
+          <i class="fa-solid fa-trash"></i> 삭제
+        </button>
+
+        <button class="header-btn reset-btn" title="기존 데이터로 원복합니다.">
+          <i class="fa-solid fa-rotate-right"></i> 초기화
+        </button>
+      </div>
+
+      <input type="checkbox" id="appendModeToggle" style="display: none" />
+      <div id="resolutionDisplay" style="display: none"></div>
+      <input
+        type="file"
+        id="folderInput"
+        class="file-input"
+        accept="image/*"
+        multiple
+        webkitdirectory
+        onchange="handleFolderSelect(event)"
+      />
+    </div>
+
+    <div class="main-content">
+      <div class="thumbnail-panel" id="thumbnailPanel">
+        <div class="panel-controls">
+          <button
+            class="sidebar-load-btn"
+            onclick="loadDirectoryWithPermission()"
+          >
+            <i class="fa-solid fa-folder-open"></i> 데이터 불러오기
+          </button>
+
+          <div class="search-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input
+              type="text"
+              id="imgSearchInput"
+              class="search-input"
+              placeholder="파일명 검색..."
+              onkeyup="handleImageSearch(this.value)"
+            />
+          </div>
+        </div>
+
+        <div class="thumbnail-list" id="thumbnailList">
+          <div class="no-images" id="noImagesMessage">이미지가 없습니다</div>
+        </div>
+      </div>
+
+      <template id="thumbnailTemplate">
+        <div class="thumbnail-wrapper">
+          <div class="thumbnail-index"></div>
+          <div class="thumbnail-item">
+            <img class="thumbnail-image" alt="" />
+
+            <div class="status-badge saved">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div class="status-badge deleted">
+              <i class="fa-solid fa-trash"></i>
+            </div>
+            <div class="status-badge visited">
+              <i class="fa-solid fa-eye"></i>
+            </div>
+            <div class="thumbnail-info">
+              <div class="thumbnail-name"></div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <div class="image-viewer" id="imageViewer">
+        <div class="image-container" id="imageContainer"></div>
+      </div>
+
+      <div id="resizer" class="resizer"></div>
+
+      <div class="right-panel-wrapper">
+        <div class="panel-side-tabs">
+          <button class="side-tab-btn spatter active" title="불티 추가 (Space)">
+            <span>불티</span>
+          </button>
+          <button class="side-tab-btn weld" title="용접부 추가">
+            <span>용접부</span>
+          </button>
+          <button class="side-tab-btn home" title="화면 맞춤">
+            <i class="fa-solid fa-house"></i>
+          </button>
+
+          <button
+            class="side-tab-btn guide-btn"
+            onclick="toggleGuideModal()"
+            title="가이드 및 단축키"
+          >
+            <i class="fa-solid fa-circle-question"></i>
+          </button>
+        </div>
+
+        <div class="right-panel">
+          <div class="panel-section">
+            <div class="caption-box">
+              <div class="caption-header">이미지 캡션</div>
+              <div class="caption-content" id="captionText">
+                데이터를 불러오면 여기에<br />캡션 내용이 표시됩니다.
+              </div>
+            </div>
+          </div>
+
+          <div class="env-section-header" onclick="toggleEnvInfo()">
+            <span class="env-title">환경 정보</span>
+            <i class="fa-solid fa-chevron-down" id="envToggleIcon"></i>
+          </div>
+
+          <div class="env-info-grid" id="envGrid">
+            <div class="env-box">
+              <div class="env-label">작업 시간</div>
+              <div class="env-value" id="envTime">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">온도</div>
+              <div class="env-value" id="envTemp">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">습도</div>
+              <div class="env-value" id="envHumid">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">산소농도</div>
+              <div class="env-value" id="envOxygen">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">PM2.5</div>
+              <div class="env-value" id="envPM">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">대기압</div>
+              <div class="env-value" id="envPress">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">풍속</div>
+              <div class="env-value" id="envWind">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">재료 최소 두께</div>
+              <div class="env-value" id="envMinThick">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">재료 최대 두께</div>
+              <div class="env-value" id="envMaxThick">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">입력 전류</div>
+              <div class="env-value" id="envCurrent">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">가스 입력1</div>
+              <div class="env-value" id="envGasIn1">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">가스 입력2</div>
+              <div class="env-value" id="envGasIn2">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">가스 종류1</div>
+              <div class="env-value" id="envGasType1">-</div>
+            </div>
+            <div class="env-box">
+              <div class="env-label">가스 종류2</div>
+              <div class="env-value" id="envGasType2">-</div>
+            </div>
+          </div>
+
+          <div class="section-header-row">
+            <h4>불티 비산 정보</h4>
+            <button class="btn-delete-all">전체삭제</button>
+          </div>
+          <div class="weld-section-wrapper">
+            <div class="weld-header">
+              <span class="weld-title">용접부 #1</span>
+
+              <div
+                class="weld-inline-info"
+                id="weldInfoContainer"
+                style="display: none"
+              ></div>
+
+              <button
+                class="btn-delete-weld"
+                onclick="alert('용접부 삭제 기능 구현 필요')"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="spatter-summary">
+            <div class="summary-item">
+              <span class="summary-label">전체:</span>
+              <span class="summary-value" id="cntTotal">0</span>
+            </div>
+
+            <div class="summary-item">
+              <span class="summary-label">정상:</span>
+              <span class="summary-value orange" id="cntNormal">0</span>
+            </div>
+
+            <div class="summary-item">
+              <span class="summary-label">이상:</span>
+              <span class="summary-value red" id="cntAbnormal">0</span>
+            </div>
+          </div>
+          <div class="filter-header">
+            <div class="col-id">No.</div>
+
+            <div class="col-size sortable" onclick="toggleSort('size')">
+              크기<span id="sortIcon_size" class="sort-icon">▼</span>
+            </div>
+
+            <div class="col-dist sortable" onclick="toggleSort('dist_temp')">
+              <span id="header_dist_temp_text">거리/온도</span>
+              <span id="sortIcon_dist_temp" class="sort-icon">▼</span>
+            </div>
+
+            <div class="col-coord">좌표(px)</div>
+
+            <div class="col-type sortable" onclick="toggleSort('type')">
+              유형<span id="sortIcon_type" class="sort-icon">▼</span>
+            </div>
+
+            <div class="col-del">삭제</div>
+          </div>
+
+          <div class="spatter-list" id="spatterListContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="guideModal" class="modal-overlay" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>🛠️ 작업자 가이드 및 단축키</h3>
+          <button class="btn-close-modal" onclick="toggleGuideModal()">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="guide-section">
+            <h4>⌨️ 키보드 단축키</h4>
+            <table class="guide-table">
+              <tr>
+                <th>
+                  <span class="key-badge">↑</span>
+                  <span class="key-badge">←</span>
+                </th>
+                <td>이전 이미지 이동</td>
+              </tr>
+              <tr>
+                <th>
+                  <span class="key-badge">↓</span>
+                  <span class="key-badge">→</span>
+                </th>
+                <td>다음 이미지 이동</td>
+              </tr>
+
+              <tr>
+                <th><span class="key-badge">Space</span></th>
+                <td>불티 추가 모드 켜기/끄기</td>
+              </tr>
+              <tr>
+                <th><span class="key-badge">Delete</span></th>
+                <td>선택한 불티 삭제</td>
+              </tr>
+              <tr>
+                <th><span class="key-badge">ESC</span></th>
+                <td>불티 취소 / 도움말 닫기</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="guide-section">
+            <h4>🖱️ 마우스 조작</h4>
+            <table class="guide-table">
+              <tr>
+                <th>좌클릭</th>
+                <td>불티/용접부 포인트 찍기, 아이템 선택</td>
+              </tr>
+              <tr>
+                <th>우클릭 드래그</th>
+                <td>화면 이동 (불티 추가 모드)</td>
+              </tr>
+              <tr>
+                <th>좌클릭 드래그</th>
+                <td>화면 이동 (일반 모드)</td>
+              </tr>
+              <tr>
+                <th>휠 스크롤</th>
+                <td>이미지 확대 / 축소</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="guide-section">
+            <h4>⚠️ 작업 주의사항</h4>
+            <ul class="guide-list">
+              <li>
+                <strong>일괄 보정:</strong> 작업 시작 전 데이터 오류가 의심되면
+                상단 '일괄 보정'을 실행하세요. (저장 표시는 남지 않습니다)
+              </li>
+              <li>
+                <strong>저장 조건:</strong> 용접부 영역이 지정되지 않으면
+                저장되지 않습니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="Scan.js"></script>
+  </body>
+</html>
