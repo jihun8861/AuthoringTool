@@ -600,6 +600,7 @@ async function loadImageFromList(index) {
   if (typeof preloadNextImage === "function") {
       preloadNextImage(index + 1);
   }
+  updateDeleteButtonUI();
 }
 
 // Scan.js - displayImage 함수 내부 수정
@@ -3259,16 +3260,17 @@ async function loadDirectoryWithPermission() {
 
 /**
  * [파일 이름 변경 헬퍼 함수 - 수정됨]
- * - 수정사항: 변경된 파일의 '새로운 핸들'을 반환하여 리스트를 갱신할 수 있게 함
+ * - 수정사항: 접두어 붙이기 방식 -> '새로운 이름(newName)'을 직접 받는 방식으로 변경 (복구 기능 지원)
  */
-async function renameFile(parentHandle, oldName, newPrefix) {
+async function renameFile(parentHandle, oldName, newName) {
   if (!parentHandle) return null;
-
-  const newName = newPrefix + oldName;
 
   try {
     const oldHandle = await parentHandle.getFileHandle(oldName);
     const file = await oldHandle.getFile();
+    
+    // 파일 내용 복사
+    // (대용량 파일일 경우 이 방식은 메모리를 사용하므로 move()가 있다면 좋겠지만, 표준 API에서는 이 방식이 안전함)
     const content = await file.arrayBuffer();
 
     // 새 파일 생성
@@ -3281,21 +3283,20 @@ async function renameFile(parentHandle, oldName, newPrefix) {
     // 원본 삭제
     await parentHandle.removeEntry(oldName);
     
-    console.log(`♻️ 이름 변경 성공: ${oldName} -> ${newName}`);
-    return newHandle; // [중요] 새 핸들 반환
+    console.log(`♻️ 파일명 변경 성공: ${oldName} -> ${newName}`);
+    return newHandle; 
 
   } catch (err) {
-    console.error(`이름 변경 실패 (${oldName}):`, err);
+    console.error(`이름 변경 실패 (${oldName} -> ${newName}):`, err);
     return null;
   }
 }
 
 /**
- * [이미지(세트) 논리 삭제 함수 - 최종 수정]
+ * [이미지(세트) 삭제/복구 토글 핸들러 - 수정됨]
  * - 기능: 
- * 1. 파일명 변경 (DEL_)
- * 2. 로컬 스토리지에 RGB와 IR 모두 "deleted" 상태로 키 변경 및 저장
- * 3. 화면 데이터 유지 및 다음 유효 이미지로 자동 이동
+ * 1. 일반 상태면 -> 삭제 (DEL_ 붙임)
+ * 2. 이미 삭제된 상태면 -> 복구 (DEL_ 제거)
  */
 async function handleDeleteCurrentPair() {
   if (!directoryHandle) {
@@ -3303,18 +3304,30 @@ async function handleDeleteCurrentPair() {
     return;
   }
   if (imageList.length === 0 || !imageList[currentImageIndex]) {
-    alert("삭제할 이미지가 없습니다.");
+    alert("처리할 이미지가 없습니다.");
     return;
   }
 
   const currentItem = imageList[currentImageIndex];
+
+  // ============================================================
+  // [분기] 이미 삭제된 파일(DEL_)이라면 -> 복구 모드로 진입
+  // ============================================================
+  if (currentItem.status === "deleted" || currentItem.name.startsWith("DEL_")) {
+      await restoreCurrentPair();
+      return;
+  }
+
+  // ============================================================
+  // [기존 로직] 삭제 모드
+  // ============================================================
   
   if (!confirm(`현재 이미지 세트(${currentItem.name})를\n삭제하시겠습니까?`)) {
     return;
   }
 
   try {
-    // [Step 1] 짝꿍 찾기
+    // 짝꿍 찾기
     let pairItem = null;
     let pairName = "";
     if (currentItem.name.includes("_RGB_")) pairName = currentItem.name.replace("_RGB_", "_IR_");
@@ -3324,21 +3337,22 @@ async function handleDeleteCurrentPair() {
     const prefix = "DEL_";
 
     // 원래 이름 저장 (로컬 스토리지 키 검색용)
-    // currentItem.name이 아래 updateItemHandles에서 바뀌기 전에 미리 저장해둠
     const oldCurrentName = currentItem.name;
     const oldPairName = pairItem ? pairItem.name : null;
 
-    // [Step 2] 파일명 변경 및 리스트 정보 갱신 (핸들 업데이트)
+    // 핸들 업데이트 (이름 변경: oldName -> DEL_oldName)
     const updateItemHandles = async (item) => {
+        const newName = prefix + item.name; // [수정] 새 이름 생성
+
         // 1. 이미지 파일 변경
         if (item.file && item.file.parentHandle) {
-            const newHandle = await renameFile(item.file.parentHandle, item.name, prefix);
+            const newHandle = await renameFile(item.file.parentHandle, item.name, newName);
             if (newHandle) {
                 const newFile = await newHandle.getFile();
                 newFile.handle = newHandle;
                 newFile.parentHandle = item.file.parentHandle;
                 item.file = newFile; 
-                item.name = newFile.name; // 리스트 상의 이름 변경 (DEL_...)
+                item.name = newFile.name; 
             }
         }
         // 2. JSON 파일 변경
@@ -3347,13 +3361,12 @@ async function handleDeleteCurrentPair() {
                              || (item.file && item.file.parentHandle) 
                              || directoryHandle;
              
-             // 바뀐 이름(DEL_...) 기준이 아니라 원래 이름 기준으로 JSON 찾기 로직이 필요할 수 있으나,
-             // 여기서는 단순히 확장자만 바꿔서 처리
-             // 주의: item.name은 위에서 이미 DEL_가 붙었음.
+             // JSON 파일명 유추
              const rawName = item.name.startsWith(prefix) ? item.name.substring(prefix.length) : item.name;
-             const jsonName = rawName.replace(/\.[^/.]+$/, "") + ".json";
+             const jsonOldName = rawName.replace(/\.[^/.]+$/, "") + ".json";
+             const jsonNewName = prefix + jsonOldName;
              
-             const newJsonHandle = await renameFile(pHandle, jsonName, prefix);
+             const newJsonHandle = await renameFile(pHandle, jsonOldName, jsonNewName);
              
              if (newJsonHandle) {
                  const newJsonFile = await newJsonHandle.getFile();
@@ -3364,59 +3377,166 @@ async function handleDeleteCurrentPair() {
         }
     };
 
-    // 파일 시스템 변경 실행
     await updateItemHandles(currentItem);
-    if (pairItem) {
-        await updateItemHandles(pairItem);
-    }
+    if (pairItem) await updateItemHandles(pairItem);
 
-    // [Step 3] 상태 변경 및 로컬 스토리지 저장 (★여기가 핵심)
-    
-    // 1) 현재 이미지 기록
+    // 상태 변경 (deleted)
     imageList[currentImageIndex].status = "deleted";
-    renameLocalStatus(
-        currentItem.path, 
-        oldCurrentName,       // 옛날 이름 (저장해둔 변수 사용)
-        currentItem.name,     // 새 이름 (DEL_...)
-        "deleted"
-    );
+    renameLocalStatus(currentItem.path, oldCurrentName, currentItem.name, "deleted");
 
-    // 2) 짝꿍 이미지 기록 (반드시 같이 실행)
     if (pairItem) {
         pairItem.status = "deleted";
-        renameLocalStatus(
-            pairItem.path, 
-            oldPairName,      // 옛날 이름
-            pairItem.name,    // 새 이름
-            "deleted"
-        );
+        renameLocalStatus(pairItem.path, oldPairName, pairItem.name, "deleted");
     }
 
     renderVirtualThumbnails(); 
-    console.log("삭제 처리 및 로컬 스토리지 기록 완료");
+    
+    // 버튼 UI 갱신 (휴지통 -> 복구 아이콘으로 변경)
+    updateDeleteButtonUI(); 
 
-    // [Step 4] 자동 이동 로직 (삭제된 건 건너뛰기)
+    console.log("삭제 처리 완료");
+
+    // 다음 이미지로 자동 이동 (선택 사항)
+    // 삭제 후 바로 이동하고 싶다면 아래 주석을 해제하세요.
+    /*
     if (currentImageIndex < imageList.length - 1) {
         let nextIndex = currentImageIndex + 1;
-        
-        // 다음 이미지가 'deleted' 상태라면 계속 건너뜀 (IR 자동 스킵)
         while (nextIndex < imageList.length && imageList[nextIndex].status === "deleted") {
              nextIndex++;
         }
-
-        if (nextIndex < imageList.length) {
-            loadImageFromList(nextIndex);
-        } else {
-            alert("마지막 이미지입니다.");
-        }
-    } else {
-        alert("마지막 이미지입니다.");
+        if (nextIndex < imageList.length) loadImageFromList(nextIndex);
     }
+    */
 
   } catch (err) {
     console.error("삭제 처리 중 오류:", err);
     alert("삭제 처리에 실패했습니다.");
   }
+}
+
+/**
+ * [이미지 복구 함수 - 신규]
+ * - 기능: DEL_ 접두어를 제거하고 상태를 'visited'로 변경
+ */
+async function restoreCurrentPair() {
+  const currentItem = imageList[currentImageIndex];
+  
+  if (!confirm(`삭제된 이미지(${currentItem.name})를\n복구하시겠습니까?`)) {
+    return;
+  }
+
+  try {
+    // 짝꿍 찾기
+    let pairItem = null;
+    // 현재 이름(DEL_...) 기준 짝꿍 이름 찾기
+    let pairName = "";
+    if (currentItem.name.includes("_RGB_")) pairName = currentItem.name.replace("_RGB_", "_IR_");
+    else if (currentItem.name.includes("_IR_")) pairName = currentItem.name.replace("_IR_", "_RGB_");
+    if (pairName) pairItem = imageList.find(item => item.name === pairName);
+
+    // 복구 로직 (핸들 업데이트)
+    const restoreItemHandles = async (item) => {
+        // "DEL_" 제거
+        const originalName = item.name.replace(/^DEL_/, ""); 
+
+        // 1. 이미지 파일 변경
+        if (item.file && item.file.parentHandle) {
+            const newHandle = await renameFile(item.file.parentHandle, item.name, originalName);
+            if (newHandle) {
+                const newFile = await newHandle.getFile();
+                newFile.handle = newHandle;
+                newFile.parentHandle = item.file.parentHandle;
+                item.file = newFile; 
+                item.name = newFile.name; // 이름 원복
+            }
+        }
+        // 2. JSON 파일 변경
+        if (item.jsonFileHandle) {
+             const pHandle = (item.jsonFile && item.jsonFile.parentHandle) 
+                             || (item.file && item.file.parentHandle) 
+                             || directoryHandle;
+             
+             // 현재 JSON 이름 (DEL_...json)
+             const currentJsonName = item.name.replace(/\.[^/.]+$/, "") + ".json";
+             // 목표 JSON 이름 (...json) - DEL_만 뺌
+             // 주의: item.name은 위에서 이미 원복되었으므로 다시 DEL_ 붙여서 로직 구성하거나,
+             // 더 간단하게 replace로 처리
+             const targetJsonName = currentJsonName.replace(/^DEL_/, "");
+             
+             // 실제 파일시스템에는 아직 DEL_...json으로 존재하므로 그걸 찾아서 바꿈
+             // (위에서 item.name이 바뀌었어도 파일시스템의 JSON은 아직 안바뀜)
+             // 로직 단순화: 현재 item.jsonFile.name 활용
+             const actualJsonName = item.jsonFile.name;
+             const newJsonName = actualJsonName.replace(/^DEL_/, "");
+
+             const newJsonHandle = await renameFile(pHandle, actualJsonName, newJsonName);
+             
+             if (newJsonHandle) {
+                 const newJsonFile = await newJsonHandle.getFile();
+                 newJsonFile.parentHandle = pHandle;
+                 item.jsonFile = newJsonFile;
+                 item.jsonFileHandle = newJsonHandle;
+             }
+        }
+    };
+
+    // 파일명 변경 실행
+    // 로컬 스토리지 키 변경을 위해 옛날 이름(DEL_...) 저장
+    const oldCurrentName = currentItem.name;
+    const oldPairName = pairItem ? pairItem.name : null;
+
+    await restoreItemHandles(currentItem);
+    if (pairItem) await restoreItemHandles(pairItem);
+
+    // 상태 변경 (visited로 복구)
+    // 저장된 적이 있는지 확인은 어렵지만, 보통 보고 지웠으므로 visited가 안전함
+    // 혹은 saved 여부를 로컬스토리지 뒤져야하지만, 일단 visited로 통일
+    currentItem.status = "visited";
+    renameLocalStatus(currentItem.path, oldCurrentName, currentItem.name, "visited");
+
+    if (pairItem) {
+        pairItem.status = "visited";
+        renameLocalStatus(pairItem.path, oldPairName, pairItem.name, "visited");
+    }
+
+    renderVirtualThumbnails();
+    
+    // 버튼 UI 갱신 (복구 아이콘 -> 휴지통으로 변경)
+    updateDeleteButtonUI(); 
+
+    alert("이미지가 복구되었습니다.");
+
+  } catch (err) {
+    console.error("복구 처리 중 오류:", err);
+    alert("복구 처리에 실패했습니다.");
+  }
+}
+
+/**
+ * [삭제 버튼 UI 갱신 함수]
+ * - 현재 이미지가 DEL_ 상태면 -> 복구 아이콘/색상
+ * - 일반 상태면 -> 휴지통 아이콘/색상
+ */
+function updateDeleteButtonUI() {
+    const btn = document.getElementById("btnDelete");
+    if (!btn || imageList.length === 0) return;
+
+    const currentItem = imageList[currentImageIndex];
+    const isDeleted = currentItem.status === "deleted" || currentItem.name.startsWith("DEL_");
+
+    if (isDeleted) {
+        // 복구 모드 스타일
+        btn.innerHTML = '<i class="fa-solid fa-trash-arrow-up"></i> 복구';
+        btn.style.backgroundColor = "#27ae60"; // 초록색
+        btn.style.borderColor = "#2ecc71";
+        btn.title = "삭제된 이미지를 복구합니다";
+    } else {
+        // 삭제 모드 스타일 (기본)
+        btn.innerHTML = '<i class="fa-solid fa-trash"></i> 삭제';
+        btn.style.backgroundColor = ""; // CSS 기본값(회색/빨강hover) 따름
+        btn.style.borderColor = "";
+        btn.title = "현재 이미지를 삭제합니다";
+    }
 }
 
 /**
@@ -3600,8 +3720,6 @@ function getFolderName(path) {
  * 사용처: 저장(saved), 이미지 열기(visited)
  */
 function updateLocalStatus(path, fileName, status) {
-  // [★추가됨] 기록 방지 모드면 저장하지 않고 즉시 종료
-  if (isHistoryDisabled) return;
   try {
     const folderName = getFolderName(path);
     const storedData = localStorage.getItem(STORAGE_KEY);
@@ -3703,8 +3821,6 @@ document.addEventListener("keydown", function (e) {
   // 2. 입력 창에서는 단축키 무시
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
-  // [삭제됨] Ctrl + Z 로직 완전히 제거
-
   // 3. [Delete] 불티 삭제 (재정렬 로직 포함)
   if (e.key === "Delete") {
     if (selectedSpatterId !== null) {
@@ -3752,9 +3868,12 @@ document.addEventListener("keydown", function (e) {
   if (e.key === 'Escape') {
         const modal = document.getElementById('guideModal');
         if (modal && modal.style.display === 'flex') {
-            modal.style.display = 'none';
+            closeGuideModal(); // [수정됨] 부드럽게 닫기 함수 호출
+            
             // 모달이 닫힐 때는 다른 ESC 동작(작성 취소 등) 방지
             e.stopPropagation(); 
+            e.preventDefault(); // (권장) 브라우저 기본 동작 방지 추가
+            return; // [중요] 함수를 여기서 종료해야 아래 '작성 취소' 로직이 실행되지 않음
         }
     }
 });
@@ -4326,18 +4445,6 @@ async function runBatchCorrection() {
         const writable = await item.jsonFileHandle.createWritable();
         await writable.write(JSON.stringify(currentJsonData, null, 2));
         await writable.close();
-
-        // ============================================================
-        // [★수정됨] 저장 표시는 남기지 않음 (Silent Save)
-        // ============================================================
-        // 기존 코드: item.status = "saved"; (삭제)
-        // 기존 코드: updateLocalStatus(..., "saved"); (삭제)
-        
-        // [참고] 만약 이미 'saved'였던 파일이라면 그대로 둠?
-        // -> 보정 전 상태를 유지하는 것이 맞다면 아래 코드는 필요 없음.
-        // -> 만약 보정을 하더라도 '안 한 상태'로 되돌리고 싶다면 status를 null로 밀어야 함.
-        // 여기서는 "기록이 남지 않도록" 하라고 하셨으므로, 
-        // 기존 상태를 건드리지 않거나(원래 안했으면 안한대로), 유지합니다.
       }
       
       isUserModified = false;
@@ -4406,29 +4513,71 @@ function toggleHistoryRecording() {
   }
 }
 
+/* =========================================
+   [가이드 모달 제어 함수 - 애니메이션 적용]
+   ========================================= */
+
 /**
- * [가이드 모달 토글 함수]
+ * 모달 열기/닫기 토글 (버튼 클릭 시 사용)
  */
 function toggleGuideModal() {
     const modal = document.getElementById('guideModal');
     if (!modal) return;
 
-    if (modal.style.display === 'none' || modal.style.display === '') {
-        modal.style.display = 'flex';
+    // 현재 열려있으면(flex) -> 닫기 함수 호출
+    if (modal.style.display === 'flex') {
+        closeGuideModal();
     } else {
-        modal.style.display = 'none';
+        // 닫혀있으면 -> 바로 열기 (CSS fadeIn 애니메이션 자동 실행됨)
+        modal.style.display = 'flex';
     }
 }
 
-// 모달 바깥 영역(검은 배경) 클릭 시 닫기
+/**
+ * 모달 닫기 (애니메이션 처리)
+ */
+function closeGuideModal() {
+    const modal = document.getElementById('guideModal');
+    const content = modal.querySelector('.modal-content');
+    
+    if (!modal || modal.style.display === 'none') return;
+
+    // 1. 닫기 애니메이션 클래스 추가
+    content.classList.add('closing');
+
+    // 2. 애니메이션 시간(0.2s)만큼 기다린 후 실제 숨김 처리
+    setTimeout(() => {
+        modal.style.display = 'none';
+        content.classList.remove('closing'); // 다음 열기를 위해 클래스 제거
+    }, 200); // CSS animation-duration과 동일하게 맞춤
+}
+
+// 1. 모달 바깥 영역(검은 배경) 클릭 시 닫기
 document.addEventListener('click', function(e) {
     const modal = document.getElementById('guideModal');
     if (modal && e.target === modal) {
-        modal.style.display = 'none';
+        closeGuideModal(); // 통합된 닫기 함수 호출
     }
 });
 
-// ESC 키로 모달 닫기 (기존 keydown 리스너 안에 추가하거나 별도로 작성)
-document.addEventListener('keydown', function(e) {
+// 2. ESC 키 및 단축키 처리 (기존 리스너 내부 수정 필요)
+// document.addEventListener("keydown", ...) 내부의 ESC 처리 부분을 아래와 같이 변경하세요.
+
+/* [기존 ESC 처리 코드 수정 가이드]
+Scan.js의 keydown 리스너 안에서 "if (e.key === 'Escape')" 부분을 찾아
+모달 닫는 로직을 closeGuideModal() 호출로 바꾸면 됩니다.
+
+예시:
+if (e.key === "Escape") {
+    e.preventDefault();
+
+    // (1) 도움말 모달이 열려있으면 부드럽게 닫기
+    const modal = document.getElementById('guideModal');
+    if (modal && modal.style.display === 'flex') {
+        closeGuideModal(); // [수정됨]
+        return;
+    }
     
-});
+    // ... (나머지 작성 취소, 선택 해제 로직 그대로 유지) ...
+}
+*/

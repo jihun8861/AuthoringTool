@@ -33,14 +33,6 @@
         </button>
 
         <button
-          class="header-btn"
-          id="btnToggleHistory"
-          onclick="toggleHistoryRecording()"
-          title="클릭 시 작업 이력이 로컬 스토리지에 저장되지 않습니다."
-        >
-          <i class="fa-solid fa-toggle-on"></i> 기록 켜짐
-        </button>
-        <button
           class="header-btn reset-storage-btn"
           onclick="clearLocalStorageHistory()"
           title="저장/삭제/확인 표시를 모두 지웁니다"
@@ -361,19 +353,18 @@
             </table>
           </div>
 
-          <div class="guide-section">
-            <h4>⚠️ 작업 주의사항</h4>
-            <ul class="guide-list">
-              <li>
-                <strong>일괄 보정:</strong> 작업 시작 전 데이터 오류가 의심되면
-                상단 '일괄 보정'을 실행하세요. (저장 표시는 남지 않습니다)
-              </li>
-              <li>
-                <strong>저장 조건:</strong> 용접부 영역이 지정되지 않으면
-                저장되지 않습니다.
-              </li>
-            </ul>
-          </div>
+         <div class="guide-section">
+                <h4>⚠️ 작업 주의사항 및 팁</h4>
+                <ul class="guide-list">
+                    <li>
+                        <strong>이미지 검색:</strong> 좌측 패널에서 파일명을 입력하면 해당 위치로 이동합니다.
+                        <div style="margin-top:4px; color:#aaa; font-size:13px;">
+                            (ex: 날짜는 중복되므로 <strong>112721</strong>(시분초) 같은 고유 번호로 검색하세요)
+                        </div>
+                    </li>
+                    <li><strong>일괄 보정:</strong> 작업 시작 전 데이터 오류가 의심되면 상단 '일괄 보정'을 실행하세요.</li>                    
+                </ul>
+            </div>
         </div>
       </div>
     </div>

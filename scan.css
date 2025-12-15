@@ -1492,7 +1492,7 @@ body.dragging-weld .label-polygon {
 .modal-content {
     background-color: #1e1e1e;
     color: #eee;
-    width: 500px;
+    width: 520px;
     max-width: 90%;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -1557,22 +1557,13 @@ body.dragging-weld .label-polygon {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* [추가] 기록 방지 버튼 - 비활성화 상태 (빨간색 강조) */
-.header-btn.history-off {
-  background-color: #e74c3c !important; /* 빨간색 */
-  border-color: #c0392b !important;
-  color: white !important;
-  font-weight: bold;
-  animation: pulse-red 2s infinite; /* 깜빡임 효과 (선택사항) */
+/* [추가] 닫기 애니메이션 정의 */
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-10px); }
 }
 
-.header-btn.history-off:hover {
-  background-color: #c0392b !important;
-}
-
-/* (선택사항) 기록 방지 중일 때 깜빡임 효과 */
-@keyframes pulse-red {
-  0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
-  70% { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+/* 닫힐 때 자바스크립트가 이 클래스를 붙여줍니다 */
+.modal-content.closing {
+    animation: fadeOut 0.2s ease-out forwards;
 }
